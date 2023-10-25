@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    android:keepScreenOn="true">
+<!--
+Those aling t tbuttos to each other
+      app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/btn_start_streaming"/>
+
+--->
+    <Button
+        android:id="@+id/btn_take_a_picture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:paddingHorizontal="30dp"
+        android:background="@color/white"
+        android:text="@string/btn_take_a_picture"
+        android:textAllCaps="false"
+        android:textColor="@color/black"
+        android:textSize="32sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/img_frame"
+
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/btn_start_streaming"/>
+
+    <Button
+        android:id="@+id/btn_start_streaming"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:paddingHorizontal="30dp"
+        android:background="@color/white"
+        android:text="@string/btn_start_streaming"
+        android:textAllCaps="false"
+        android:textColor="@color/black"
+        android:textSize="32sp"
+        app:layout_constraintTop_toTopOf="@id/btn_take_a_picture"
+        app:layout_constraintBottom_toBottomOf="@id/btn_take_a_picture"
+        app:layout_constraintLeft_toRightOf="@id/btn_take_a_picture"
+        app:layout_constraintRight_toLeftOf="@id/btn_stop_streaming"/>
+
+    <Button
+        android:id="@+id/btn_stop_streaming"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:paddingHorizontal="30dp"
+        android:background="@color/white"
+        android:text="@string/btn_stop_streaming"
+        android:textAllCaps="false"
+        android:textColor="@color/black"
+        android:textSize="32sp"
+        app:layout_constraintTop_toTopOf="@id/btn_take_a_picture"
+        app:layout_constraintBottom_toBottomOf="@id/btn_take_a_picture"
+        app:layout_constraintLeft_toRightOf="@id/btn_start_streaming"
+        app:layout_constraintRight_toRightOf="parent"/>
+
+    <ImageView
+        android:id="@+id/img_frame"
+        android:layout_width="640dp"
+        android:layout_height="480dp"
+        android:scaleType="centerInside"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        tools:ignore="ContentDescription"/>
+
+    <Button
+        android:id="@+id/btn_lock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:paddingHorizontal="30dp"
+        android:background="@color/white"
+        android:text="@string/btn_pause_camera_service"
+        android:textAllCaps="false"
+        android:textColor="@color/black"
+        android:textSize="32sp"
+        app:layout_constraintTop_toBottomOf="@id/img_frame"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/btn_unlock"/>
+
+    <Button
+        android:id="@+id/btn_unlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:paddingHorizontal="30dp"
+        android:background="@color/white"
+        android:text="@string/btn_resume_camera_service"
+        android:textAllCaps="false"
+        android:textColor="@color/black"
+        android:textSize="32sp"
+        app:layout_constraintTop_toTopOf="@id/btn_lock"
+        app:layout_constraintBottom_toBottomOf="@id/btn_lock"
+        app:layout_constraintLeft_toRightOf="@id/btn_lock"
+        app:layout_constraintRight_toLeftOf="@id/btn_exit"/>
+
+    <Button
+        android:id="@+id/btn_exit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="30dp"
+        android:background="@color/white"
+        android:text="@string/btn_exit"
+        android:textAllCaps="false"
+        android:textColor="@color/black"
+        android:textSize="32sp"
+        app:layout_constraintTop_toTopOf="@id/btn_lock"
+        app:layout_constraintBottom_toBottomOf="@id/btn_lock"
+        app:layout_constraintLeft_toRightOf="@id/btn_unlock"
+        app:layout_constraintRight_toRightOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

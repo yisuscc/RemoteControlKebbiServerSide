@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Camera Streaming Sample</string>
+    <string name="btn_take_a_picture">Take a photo</string>
+    <string name="btn_start_streaming">Start streaming</string>
+    <string name="btn_stop_streaming">Stop streaming</string>
+    <string name="btn_pause_camera_service">Pause camera service</string>
+    <string name="btn_resume_camera_service">Resume camera service</string>
+    <string name="btn_exit">Exit</string>
+</resources>
