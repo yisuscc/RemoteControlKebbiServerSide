@@ -7,7 +7,7 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="Remote Control Server"
         android:supportsRtl="true"
         android:theme="@style/AppThemeNoActionBar"
         android:fullBackupContent="@xml/backup_descriptor"

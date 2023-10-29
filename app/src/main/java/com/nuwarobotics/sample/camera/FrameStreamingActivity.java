@@ -1,13 +1,19 @@
 package com.nuwarobotics.sample.camera;
 
-import android.graphics.Camera;
+import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.nuwarobotics.service.camera.sdk.CameraSDK;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
@@ -36,14 +42,60 @@ public class FrameStreamingActivity extends AppCompatActivity {
      * width=160 height=120
      */
     final int WIDTH = 1280;
-    final int HEIGHT =768;
+    final int HEIGHT = 768;
+    final int portNumber = 49169;
+    private ServerSocket server; // TODO Server socket o websocket server
+    private Socket client;// same with the server
+    private InputStream input;
+    private OutputStream output;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+// first we create the scoket connection
+        try {
+            server = new ServerSocket(portNumber);
+            new Thread(() -> {
+                try { // shoul we put it inside a while loop
+                    /*
+                    while(clientisnotconnected)
+                    {
+                    try to connect
+                    }
+                     */
 
+                    //Socket client = server.accept();
+                    client = server.accept();
+                    //TODO a handle client socket
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         mCameraSDK = new CameraSDK(this);
-        initView();
+        sendStreaming();
+    }
+
+    private void handleClientSocket(Socket client) {
+        //TODO Terminar
+        try {
+            // first we create  the inputs and output of the socket
+            //what should i use java.io or java websocket
+            // the java websocket seem apprpiate  since is a real time app
+            //Since most of the documentatio is with normal sockets i am goint to go with those
+
+
+         /*   InputStream input = client.getInputStream();
+            OutputStream ouput = client.getOutputStream();*/
+            input = client.getInputStream();
+            output = client.getOutputStream();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -51,37 +103,18 @@ public class FrameStreamingActivity extends AppCompatActivity {
         mCameraSDK.stopCameraStreaming();
 
         mCameraSDK.release();
+        try {
+            server.close();
+        } catch (IOException e) {
+
+        }
         super.onDestroy();
     }
 
-    private void initView() {
+    private void sendStreaming() {
         setContentView(R.layout.activity_sample);
 
         mImageFrame = findViewById(R.id.img_frame);
-
-/*
-		// Request a single bitmap.
-		findViewById(R.id.btn_take_a_picture)
-				.setOnClickListener((v) -> mCameraSDK
-						.requestCameraFrame((code, bitmap) -> {
-							switch (code) {
-								case CameraSDK.CODE_NORMAL:
-								case CameraSDK.CODE_NORMAL_RESIZE:
-									runOnUiThread(() -> {
-										try {
-											mImageFrame.setImageBitmap(bitmap);
-										} catch (Exception e) {
-											e.printStackTrace();
-										}
-									});
-									break;
-								case CameraSDK.CODE_TOO_MANY_CLIENTS:
-									// over 3 clients using currently.
-								case CameraSDK.CODE_ILLEGAL_RESOLUTION:
-									// assigned resolution is illegal for now.
-							}
-						}));
-*/
 
         // Request the bitmap streaming.
         mCameraSDK.requestCameraStreaming(
@@ -93,7 +126,15 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         case CameraSDK.CODE_NORMAL_RESIZE:
                             runOnUiThread(() -> {
                                 try {
+                                    //TODO Check if the client is connected
+                                    /*
+                                    here i should add/replace the  mImage frame
+                                    to a ouput.write(bitmap)
+                                     */
                                     mImageFrame.setImageBitmap(bitmap);
+                                    //1 we convert the bitmap to a byte array
+
+                                    output.write(bitmapToByteArrayConversor(bitmap));
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -106,22 +147,15 @@ public class FrameStreamingActivity extends AppCompatActivity {
                     }
                 });
 
-        // Stop streaming
-        /*findViewById(R.id.btn_stop_streaming).setOnClickListener((v) -> mCameraSDK.stopCameraStreaming());*/
-
-        // Lock all applications to use camera service.
-      /*  findViewById(R.id.btn_lock).setOnClickListener((v) -> {
-            if (mCameraSDK.pauseCameraService()) {
-                Log.i(FrameStreamingActivity.class.getSimpleName(), "paused camera service");
-            } else {
-                Log.e(FrameStreamingActivity.class.getSimpleName(), "pause camera service failed");
-            }
-        });
-*/
-        // Important! If the lockCamera is invoked, must invoke unlockCamera to recover.
-   /*     findViewById(R.id.btn_unlock).setOnClickListener((v) -> mCameraSDK.resumeCameraService());
-
-        findViewById(R.id.btn_exit).setOnClickListener((v) -> finish());*/
+    }
+    private void receiveCommand(){
+        //TODO
     }
 
+    private static byte[] bitmapToByteArrayConversor(Bitmap bm) {
+        ByteArrayOutputStream strm = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.PNG, 100, strm);
+        byte[] byteArray = strm.toByteArray();
+        return byteArray;
+    }
 }
