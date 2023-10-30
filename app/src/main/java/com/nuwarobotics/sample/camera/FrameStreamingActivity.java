@@ -79,7 +79,6 @@ public class FrameStreamingActivity extends AppCompatActivity {
     }
 
     private void handleClientSocket(Socket client) {
-        //TODO Terminar
         try {
             // first we create  the inputs and output of the socket
             //what should i use java.io or java websocket
@@ -91,6 +90,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
             OutputStream ouput = client.getOutputStream();*/
             input = client.getInputStream();
             output = client.getOutputStream();
+            sendStreaming();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -126,15 +126,19 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         case CameraSDK.CODE_NORMAL_RESIZE:
                             runOnUiThread(() -> {
                                 try {
-                                    //TODO Check if the client is connected
+
                                     /*
                                     here i should add/replace the  mImage frame
                                     to a ouput.write(bitmap)
                                      */
-                                    mImageFrame.setImageBitmap(bitmap);
-                                    //1 we convert the bitmap to a byte array
+                                    while(client.isConnected()){
+                                        mImageFrame.setImageBitmap(bitmap);
+                                        //1 we convert the bitmap to a byte array
 
-                                    output.write(bitmapToByteArrayConversor(bitmap));
+                                        output.write(bitmapToByteArrayConversor(bitmap));
+                                        output.flush();
+                                    }
+
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -149,7 +153,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
     }
     private void receiveCommand(){
-        //TODO
+        //TODO afterwecheckedthatthesendingofthestreamingserviceworkscorrectly
+        // my space bar didnt work correctly
+
     }
 
     private static byte[] bitmapToByteArrayConversor(Bitmap bm) {
