@@ -134,8 +134,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     while(client.isConnected()){
                                         mImageFrame.setImageBitmap(bitmap);
                                         //1 we convert the bitmap to a byte array
-
-                                        output.write(bitmapToByteArrayConversor(bitmap));
+                                        byte[] btmp = bitmapToByteArrayConversor(bitmap);
+                                        //TODO ver como puedo averiguar y enviar  el tamaño del array
+                                        output.write(btmp);
                                         output.flush();
                                     }
 
