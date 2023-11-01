@@ -52,51 +52,34 @@ public class FrameStreamingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mCameraSDK = new CameraSDK(this);
+        new  Thread(()-> serverSocketCreation());
+        startStreaming();
 // first we create the scoket connection
+
+
+    }
+    private void serverSocketCreation(){
         try {
             server = new ServerSocket(portNumber);
-            new Thread(() -> {
-                try { // shoul we put it inside a while loop
-                    /*
-                    while(clientisnotconnected)
-                    {
-                    try to connect
-                    }
-                     */
+                try {
 
-                    //Socket client = server.accept();
                     client = server.accept();
-                    //TODO a handle client socket
+                    input = client.getInputStream();
+                    output = client.getOutputStream();
+
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }).start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        mCameraSDK = new CameraSDK(this);
-        sendStreaming();
-    }
-
-    private void handleClientSocket(Socket client) {
-        try {
-            // first we create  the inputs and output of the socket
-            //what should i use java.io or java websocket
-            // the java websocket seem apprpiate  since is a real time app
-            //Since most of the documentatio is with normal sockets i am goint to go with those
-
-
-         /*   InputStream input = client.getInputStream();
-            OutputStream ouput = client.getOutputStream();*/
-            input = client.getInputStream();
-            output = client.getOutputStream();
-            sendStreaming();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
+
+
 
     @Override
     protected void onDestroy() {
@@ -104,6 +87,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         mCameraSDK.release();
         try {
+            input.close();
+            output.close();
             server.close();
         } catch (IOException e) {
 
@@ -111,7 +96,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private void sendStreaming() {
+    private void startStreaming() {
         setContentView(R.layout.activity_sample);
 
         mImageFrame = findViewById(R.id.img_frame);
@@ -131,12 +116,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     here i should add/replace the  mImage frame
                                     to a ouput.write(bitmap)
                                      */
-                                    while(client.isConnected()){
-                                        mImageFrame.setImageBitmap(bitmap);
+                                    mImageFrame.setImageBitmap(bitmap);
+                                    if(client != null  && client.isConnected()){
+
                                         //1 we convert the bitmap to a byte array
-                                        byte[] btmp = bitmapToByteArrayConversor(bitmap);
+                                      byte[] btmp = bitmapToByteArrayConversor(bitmap);
                                         //TODO ver como puedo averiguar y enviar  el tamaño del array
-                                        output.write(btmp);
+                                       output.write(btmp);
                                         output.flush();
                                     }
 
