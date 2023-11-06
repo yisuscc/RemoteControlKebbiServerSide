@@ -2,6 +2,7 @@ package com.nuwarobotics.sample.camera;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,32 +54,25 @@ public class FrameStreamingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mCameraSDK = new CameraSDK(this);
-        new  Thread(()-> serverSocketCreation());
+        new Thread(() -> serverSocketCreation());
         startStreaming();
 // first we create the scoket connection
 
 
     }
-    private void serverSocketCreation(){
+
+    private void serverSocketCreation() {
         try {
             server = new ServerSocket(portNumber);
-                try {
-
-                    client = server.accept();
-                    input = client.getInputStream();
-                    output = client.getOutputStream();
-
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
+            client = server.accept();
+            Log.i("jesus ", "Client connected");
+            input = client.getInputStream();
+            output = client.getOutputStream();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
-
 
 
     @Override
@@ -87,9 +81,14 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         mCameraSDK.release();
         try {
-            input.close();
-            output.close();
-            server.close();
+            if(input!= null)
+                input.close();
+            if(output!= null)
+                output.close();
+            if(client != null && client.isConnected())
+                client.close();
+            if(!server.isClosed() || server != null)
+                server.close();
         } catch (IOException e) {
 
         }
@@ -117,12 +116,12 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     to a ouput.write(bitmap)
                                      */
                                     mImageFrame.setImageBitmap(bitmap);
-                                    if(client != null  && client.isConnected()){
+                                    if (client != null && client.isConnected()) {
 
                                         //1 we convert the bitmap to a byte array
-                                      byte[] btmp = bitmapToByteArrayConversor(bitmap);
+                                        byte[] btmp = bitmapToByteArrayConversor(bitmap);
                                         //TODO ver como puedo averiguar y enviar  el tamaño del array
-                                       output.write(btmp);
+                                        output.write(btmp);
                                         output.flush();
                                     }
 
@@ -139,7 +138,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 });
 
     }
-    private void receiveCommand(){
+
+    private void receiveCommand() {
         //TODO afterwecheckedthatthesendingofthestreamingserviceworkscorrectly
         // my space bar didnt work correctly
 
