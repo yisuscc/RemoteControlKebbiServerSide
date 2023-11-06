@@ -1,2 +1,2 @@
 include ':app'
-rootProject.name = "CameraFrameStreaming"
+rootProject.name = "RemoteControlKebbyServer"
