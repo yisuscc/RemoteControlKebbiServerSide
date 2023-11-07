@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -20,7 +21,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
     //private static Camera mCamera;
     private ImageView mImageFrame;
-
+    private TextView vTextIP;
+    private TextView vTextPort;
     /*
      * Available resolutions for NB2 are:
      * width=1920 height=1080
@@ -44,9 +46,11 @@ public class FrameStreamingActivity extends AppCompatActivity {
      */
     final int WIDTH = 1280;
     final int HEIGHT = 768;
-    final int portNumber = 49169;
-    private ServerSocket server; // TODO Server socket o websocket server
-    private Socket client;// same with the server
+    int portNumber = 49169;
+    String ip = "LoremIpsum";
+
+    private ServerSocket server;
+    private Socket client;
     private InputStream input;
     private OutputStream output;
 
@@ -63,9 +67,12 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
     private void serverSocketCreation() {
         try {
-            server = new ServerSocket(portNumber);
+            //server = new ServerSocket(portNumber);
+            server = new ServerSocket();
             client = server.accept();
             Log.i("jesus ", "Client connected");
+            ip = server.getInetAddress().toString();
+            portNumber = server.getLocalPort();
             input = client.getInputStream();
             output = client.getOutputStream();
         } catch (IOException e) {
@@ -116,6 +123,10 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     to a ouput.write(bitmap)
                                      */
                                     mImageFrame.setImageBitmap(bitmap);
+                                    if (server != null && !server.isClosed() && !client.isConnected()){
+                                        vTextIP.setText(ip);
+                                        vTextPort.setText(portNumber);
+                                    }
                                     if (client != null && client.isConnected()) {
 
                                         //1 we convert the bitmap to a byte array
