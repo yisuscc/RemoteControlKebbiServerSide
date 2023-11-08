@@ -1,6 +1,9 @@
 package com.nuwarobotics.sample.camera;
 
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ImageView;
@@ -16,6 +19,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Locale;
 
 public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
@@ -46,7 +50,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
      */
     final int WIDTH = 1280;
     final int HEIGHT = 768;
-    int portNumber = 49169;
+    Integer portNumber= 4169;
     String ip = "LoremIpsum";
 
     private ServerSocket server;
@@ -58,7 +62,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mCameraSDK = new CameraSDK(this);
-        new Thread(() -> serverSocketCreation());
+        new Thread(() -> serverSocketCreation()).start();
         startStreaming();
 // first we create the scoket connection
 
@@ -68,11 +72,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private void serverSocketCreation() {
         try {
             //server = new ServerSocket(portNumber);
-            server = new ServerSocket();
+            server = new ServerSocket(0);
+            ip = getLocalIP(this);
+            portNumber = server.getLocalPort();
+            Log.d("ServerSocketCreation", "seted the names" +"ip: "+ ip+"port:"+portNumber);
             client = server.accept();
             Log.i("jesus ", "Client connected");
-            ip = server.getInetAddress().toString();
-            portNumber = server.getLocalPort();
+
             input = client.getInputStream();
             output = client.getOutputStream();
         } catch (IOException e) {
@@ -125,9 +131,11 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     to a ouput.write(bitmap)
                                      */
                                     mImageFrame.setImageBitmap(bitmap);
-                                    if (server != null && !server.isClosed() && !client.isConnected()){
+                                    //server != null && !server.isClosed() && !client.isConnected()
+                                    if (true) {
+                                        Log.d("epic", "seted the names" + "ip: " + ip + "port:" + portNumber);
                                         vTextIP.setText(ip);
-                                        vTextPort.setText(portNumber);
+                                        vTextPort.setText(portNumber.toString());
                                     }
                                     if (client != null && client.isConnected()) {
 
@@ -149,7 +157,19 @@ public class FrameStreamingActivity extends AppCompatActivity {
                             // assigned resolution is illegal for now.
                     }
                 });
+    }
 
+
+        public String getLocalIP(Context context){
+            WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
+            assert wifiManager != null;
+            WifiInfo info = wifiManager.getConnectionInfo();
+            int ipAddress = info.getIpAddress();
+            return String.format(Locale.ENGLISH, "%1$d.%2$d.%3$d.%4$d"
+                    , ipAddress & 0xff
+                    , ipAddress >> 8 & 0xff
+                    , ipAddress >> 16 & 0xff
+                    , ipAddress >> 24 & 0xff);
     }
 
     private void receiveCommand() {
