@@ -16,6 +16,7 @@ import com.nuwarobotics.service.camera.sdk.CameraSDK;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -124,7 +125,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         case CameraSDK.CODE_NORMAL:
                         case CameraSDK.CODE_NORMAL_RESIZE:
                             runOnUiThread(() -> {
-                                try {
+
 
                                     /*
                                     here i should add/replace the  mImage frame
@@ -139,16 +140,22 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     }
                                     if (client != null && client.isConnected()) {
 
-                                        //1 we convert the bitmap to a byte array
-                                        byte[] btmp = bitmapToByteArrayConversor(bitmap);
-                                        //TODO ver como puedo averiguar y enviar  el tamaño del array
-                                        output.write(btmp);
-                                        output.flush();
+                                   ByteArrayOutputStream strm = new ByteArrayOutputStream();
+                                   /*
+                                   Write a compressed version of the bitmap to the specified outputstream
+                                    */
+                                   bitmap.compress(Bitmap.CompressFormat.JPEG,70,strm);
+                                   // try catch
+                                        try {
+                                            ObjectOutputStream  ooStrm = new ObjectOutputStream(output);
+                                            ooStrm.writeObject(strm.toByteArray());
+                                            ooStrm.flush();
+                                        }catch (IOException e){
+                                            e.printStackTrace();
+                                        }
+
                                     }
 
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
                             });
                             break;
                         case CameraSDK.CODE_TOO_MANY_CLIENTS:
