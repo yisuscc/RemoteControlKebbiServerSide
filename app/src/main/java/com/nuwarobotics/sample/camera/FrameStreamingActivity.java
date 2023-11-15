@@ -13,6 +13,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.nuwarobotics.service.camera.sdk.CameraSDK;
 
+import org.java_websocket.WebSocket;
+import org.java_websocket.server.WebSocketServer;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +54,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
      */
     final int WIDTH = 1280;
     final int HEIGHT = 768;
-    Integer portNumber= 4169;
+    Integer portNumber = 4169;
     String ip = "LoremIpsum";
 
     private ServerSocket server;
@@ -63,9 +66,14 @@ public class FrameStreamingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mCameraSDK = new CameraSDK(this);
+        setContentView(R.layout.activity_sample);
+
+        mImageFrame = findViewById(R.id.img_frame);
+        vTextIP = findViewById(R.id.ipView);
+        vTextPort = findViewById(R.id.portView);
         new Thread(() -> serverSocketCreation()).start();
         startStreaming();
-// first we create the scoket connection
+
 
 
     }
@@ -73,10 +81,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private void serverSocketCreation() {
         try {
             //server = new ServerSocket(portNumber);
+            if(server!= null&& !server.isClosed()){
+                server.close();
+            }
             server = new ServerSocket(0);
             ip = getLocalIP(this);
             portNumber = server.getLocalPort();
-            Log.d("ServerSocketCreation", "seted the names" +"ip: "+ ip+"port:"+portNumber);
+          //  Log.d("ServerSocketCreation", "seted the names" + "ip: " + ip + "port:" + portNumber);
             client = server.accept();
             Log.i("jesus ", "Client connected");
 
@@ -95,13 +106,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         mCameraSDK.release();
         try {
-            if(input!= null)
+            if (input != null)
                 input.close();
-            if(output!= null)
+            if (output != null)
                 output.close();
-            if(client != null && client.isConnected())
+            if (client != null && client.isConnected())
                 client.close();
-            if(!server.isClosed() || server != null)
+            if (!server.isClosed() && server != null)
                 server.close();
         } catch (IOException e) {
 
@@ -110,73 +121,53 @@ public class FrameStreamingActivity extends AppCompatActivity {
     }
 
     private void startStreaming() {
-        setContentView(R.layout.activity_sample);
+        mCameraSDK
+                .requestCameraStreaming(
+                        WIDTH,
+                        HEIGHT,
+                        (code, bitmap) -> {
+                            switch (code) {
+                                case CameraSDK.CODE_NORMAL:
+                                case CameraSDK.CODE_NORMAL_RESIZE:
 
-        mImageFrame = findViewById(R.id.img_frame);
-        vTextIP = findViewById(R.id.ipView);
-        vTextPort = findViewById(R.id.portView);
-
-        // Request the bitmap streaming.
-        mCameraSDK.requestCameraStreaming(
-                WIDTH,
-                HEIGHT,
-                (code, bitmap) -> {
-                    switch (code) {
-                        case CameraSDK.CODE_NORMAL:
-                        case CameraSDK.CODE_NORMAL_RESIZE:
-                            runOnUiThread(() -> {
-
-
-                                    /*
-                                    here i should add/replace the  mImage frame
-                                    to a ouput.write(bitmap)
-                                     */
-                                    mImageFrame.setImageBitmap(bitmap);
-                                    //server != null && !server.isClosed() && !client.isConnected()
-                                    if (true) {
-                                        Log.d("epic", "seted the names" + "ip: " + ip + "port:" + portNumber);
-                                        vTextIP.setText(ip);
-                                        vTextPort.setText(portNumber.toString());
-                                    }
-                                    if (client != null && client.isConnected()) {
-
-                                   ByteArrayOutputStream strm = new ByteArrayOutputStream();
-                                   /*
-                                   Write a compressed version of the bitmap to the specified outputstream
-                                    */
-                                   bitmap.compress(Bitmap.CompressFormat.JPEG,70,strm);
-                                   // try catch
+                                    vTextIP.setText(ip);
+                                    vTextPort.setText(portNumber.toString());
+                                    if (null != client && client.isConnected()) {
+                                        runOnUiThread(()->mImageFrame.setImageBitmap(bitmap));
+                                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
                                         try {
-                                            ObjectOutputStream  ooStrm = new ObjectOutputStream(output);
-                                            ooStrm.writeObject(strm.toByteArray());
-                                            ooStrm.flush();
-                                        }catch (IOException e){
+                                            ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
+                                            oos.writeObject(stream.toByteArray());
+                                            oos.flush();
+                                            Log.d("jesus","wrote the bitmat to the socket");
+                                        } catch (IOException e) {
                                             e.printStackTrace();
+                                            Log.d("jesus"," couldnt write the bitmat to the socket");
                                         }
-
                                     }
 
-                            });
-                            break;
-                        case CameraSDK.CODE_TOO_MANY_CLIENTS:
-                            // over 3 clients using currently.
-                        case CameraSDK.CODE_ILLEGAL_RESOLUTION:
-                            // assigned resolution is illegal for now.
-                    }
-                });
+                                    break;
+                                case CameraSDK.CODE_TOO_MANY_CLIENTS:
+                                    // over 3 clients using currently.
+                                case CameraSDK.CODE_ILLEGAL_RESOLUTION:
+                                    // assigned resolution is illegal for now.
+                            }
+                        });
+
     }
 
 
-        public String getLocalIP(Context context){
-            WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
-            assert wifiManager != null;
-            WifiInfo info = wifiManager.getConnectionInfo();
-            int ipAddress = info.getIpAddress();
-            return String.format(Locale.ENGLISH, "%1$d.%2$d.%3$d.%4$d"
-                    , ipAddress & 0xff
-                    , ipAddress >> 8 & 0xff
-                    , ipAddress >> 16 & 0xff
-                    , ipAddress >> 24 & 0xff);
+    public String getLocalIP(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
+        assert wifiManager != null;
+        WifiInfo info = wifiManager.getConnectionInfo();
+        int ipAddress = info.getIpAddress();
+        return String.format(Locale.ENGLISH, "%1$d.%2$d.%3$d.%4$d"
+                , ipAddress & 0xff
+                , ipAddress >> 8 & 0xff
+                , ipAddress >> 16 & 0xff
+                , ipAddress >> 24 & 0xff);
     }
 
     private void receiveCommand() {
