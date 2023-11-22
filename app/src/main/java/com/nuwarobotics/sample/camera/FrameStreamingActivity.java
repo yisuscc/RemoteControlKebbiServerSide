@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -38,6 +39,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private TextView vTextIP;
     private TextView vTextPort;
     private NuwaRobotAPI mRobot;
+    private final Handler mHandler = new Handler();
 
     /*
      * Available resolutions for NB2 are:
@@ -83,11 +85,12 @@ public class FrameStreamingActivity extends AppCompatActivity {
         mImageFrame = findViewById(R.id.img_frame);
         vTextIP = findViewById(R.id.ipView);
         vTextPort = findViewById(R.id.portView);
-        new Thread(() -> serverSocketCreation()).start();
+        new Thread(() -> {
+            serverSocketCreation();
+            receiveCommand();
+        }).start();
 
         startStreaming();
-
-
     }
 
     private void serverSocketCreation() {
@@ -186,19 +189,31 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 , ipAddress >> 24 & 0xff);
     }
 
+    private final Runnable stopMovingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (null != mRobot) {
+                mRobot.move(0);
+                mRobot.turn(0);
+            }
+        }
+    };
+
     private void receiveCommand() {
         //TODO afterwecheckedthatthesendingofthestreamingserviceworkscorrectly
         // my space bar didnt work correctly
-        while (true) {//TODO: Chage the while condition
+        while (!server.isClosed()) {//TODO: Chage the while condition
             try {
-                ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
-                String strng = (String)ois.readObject();
-                JSONObject cmd = strng != null? new JSONObject(strng):null;
+                InputStream is = client.getInputStream();
+                byte[]bytes=   new byte [1024];
+                is.read(bytes);
+                String string = new String(bytes);
+                JSONObject cmd = string != null? new JSONObject(string):null;
 
                 if (cmd != null) {
                     interpretCommand(cmd);
                 }
-            } catch (IOException | JSONException | ClassNotFoundException e) {
+            } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
         }
@@ -206,6 +221,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
     }
 
     private void interpretCommand(JSONObject command) {
+        Log.i("Jesus", "interpretCommand " + command.toString());
         if (command != null) {
             String propiedad = null;
             String accion = null;
@@ -236,17 +252,22 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         }
                         break;
                     case "moving":
+                        mHandler.removeCallbacks(stopMovingRunnable);
                         switch (accion) {
                             case "backward":
+                                mRobot.move(-0.3f);
                                 break;
                             case "frontward":
+                                mRobot.move(0.3f);
                                 break;
                             case "turnLeft":
+                                mRobot.turn(90.0f);
                                 break;
                             case "turnRight":
+                                mRobot.turn(-90.0f);
                                 break;
-
                         }
+                        mHandler.postDelayed(stopMovingRunnable, 500);
                         break;
                 }
             }
