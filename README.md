@@ -1,4 +1,4 @@
-# `Camera Frame And Streaming Sample`
+# `RRemote control kebby client  Server Side`
 This is a sample project that can be built and run directly.
 
 # `Support Robot Product`
@@ -16,6 +16,9 @@ Robot Generation 2
 * Make sure the Camera Service version is later than 2022/12/7.
 
 # `Important Statements`
+THis app is build on top of the  Camera streaming sample app made by Will Lin (nuwa robotics)
+Also Thanks to him for his help and inputs with the code .
+
 * FrameStreamingActivity
   - CameraSDK is applied here.
   - There are 5 major methods to show in this activity.

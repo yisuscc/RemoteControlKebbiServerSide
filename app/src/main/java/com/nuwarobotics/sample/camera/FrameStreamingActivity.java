@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.nuwarobotics.service.IClientId;
 import com.nuwarobotics.service.agent.NuwaRobotAPI;
+import com.nuwarobotics.service.agent.RobotEventListener;
 import com.nuwarobotics.service.camera.sdk.CameraSDK;
 
 import org.java_websocket.WebSocket;
@@ -41,27 +42,6 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private NuwaRobotAPI mRobot;
     private final Handler mHandler = new Handler();
 
-    /*
-     * Available resolutions for NB2 are:
-     * width=1920 height=1080
-     * width=1600 height=1200
-     * width=1440 height=1080
-     * width=1280 height=960
-     * width=1280 height=768
-     * width=1280 height=720
-     * width=1024 height=768
-     * width=800 height=600
-     * width=800 height=480
-     * width=720 height=480
-     * width=640 height=480
-     * width=640 height=360
-     * width=480 height=360
-     * width=480 height=320
-     * width=352 height=288
-     * width=320 height=240
-     * width=176 height=144
-     * width=160 height=120
-     */
     final int WIDTH = 1280;
     final int HEIGHT = 768;
     Integer portNumber = 4169;
@@ -79,6 +59,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         String your_app_package_name = getPackageName();
         IClientId id = new IClientId(your_app_package_name);
         mRobot = new NuwaRobotAPI(this, id);
+        mRobot.registerRobotEventListener(robotEventListener);
         mCameraSDK = new CameraSDK(this);
         setContentView(R.layout.activity_sample);
 
@@ -92,6 +73,142 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         startStreaming();
     }
+    private final RobotEventListener robotEventListener= new RobotEventListener() {
+        @Override
+        public void onWikiServiceStart() {
+            mRobot.requestSensor(NuwaRobotAPI.SENSOR_TOUCH);
+        }
+
+        @Override
+        public void onWikiServiceStop() {
+
+        }
+
+        @Override
+        public void onWikiServiceCrash() {
+
+        }
+
+        @Override
+        public void onWikiServiceRecovery() {
+
+        }
+
+        @Override
+        public void onWikiServiceError(int i) {
+
+        }
+
+        @Override
+        public void onStartOfMotionPlay(String s) {
+
+        }
+
+        @Override
+        public void onPauseOfMotionPlay(String s) {
+
+        }
+
+        @Override
+        public void onStopOfMotionPlay(String s) {
+
+        }
+
+        @Override
+        public void onCompleteOfMotionPlay(String s) {
+
+        }
+
+        @Override
+        public void onPlayBackOfMotionPlay(String s) {
+
+        }
+
+        @Override
+        public void onErrorOfMotionPlay(int i) {
+
+        }
+
+        @Override
+        public void onPrepareMotion(boolean b, String s, float v) {
+
+        }
+
+        @Override
+        public void onCameraOfMotionPlay(String s) {
+
+        }
+
+        @Override
+        public void onGetCameraPose(float v, float v1, float v2, float v3, float v4, float v5, float v6, float v7, float v8, float v9, float v10, float v11) {
+
+        }
+
+        @Override
+        public void onTouchEvent(int position, int i1) {
+        Log.i("jesus", "i="+position+"i1="+i1);
+        if(position== 4){
+            mRobot.showFace();
+        }else if (position==3){
+            mRobot.hideFace();
+        }
+        }
+
+        @Override
+        public void onPIREvent(int i) {
+
+        }
+
+        @Override
+        public void onTap(int i) {
+
+        }
+
+        @Override
+        public void onLongPress(int i) {
+
+        }
+
+        @Override
+        public void onWindowSurfaceReady() {
+
+        }
+
+        @Override
+        public void onWindowSurfaceDestroy() {
+
+        }
+
+        @Override
+        public void onTouchEyes(int i, int i1) {
+
+        }
+
+        @Override
+        public void onRawTouch(int i, int i1, int i2) {
+
+        }
+
+        @Override
+        public void onFaceSpeaker(float v) {
+
+        }
+
+        @Override
+        public void onActionEvent(int i, int i1) {
+
+        }
+
+        @Override
+        public void onDropSensorEvent(int i) {
+
+        }
+
+        @Override
+        public void onMotorErrorEvent(int i, int i1) {
+
+        }
+    };
 
     private void serverSocketCreation() {
         try {
@@ -104,6 +221,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
             portNumber = server.getLocalPort();
             //  Log.d("ServerSocketCreation", "seted the names" + "ip: " + ip + "port:" + portNumber);
             client = server.accept();
+            mRobot.showFace();
             Log.i("jesus ", "Client connected");
 
             input = client.getInputStream();
@@ -151,7 +269,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     if (null != client && client.isConnected() && streamingFlag.get()) {
                                         if(!streamingFlag.get())
                                             break;
-                                        runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
+                                       // runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
                                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
                                         bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
                                         try {
