@@ -246,7 +246,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 output.close();
             if (client != null && client.isConnected())
                 client.close();
-            if (!server.isClosed() && server != null)
+            if ( server != null && !server.isClosed() )
                 server.close();
         } catch (IOException e) {
 
@@ -318,9 +318,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
     };
 
     private void receiveCommand() {
-        //TODO afterwecheckedthatthesendingofthestreamingserviceworkscorrectly
-        // my space bar didnt work correctly
-        while (!server.isClosed()) {//TODO: Chage the while condition
+        while (!server.isClosed() && client.isConnected() && !client.isClosed()) {
             try {
                 InputStream is = client.getInputStream();
                 byte[]bytes=   new byte [1024];
@@ -353,9 +351,32 @@ public class FrameStreamingActivity extends AppCompatActivity {
             }
 
             if (propiedad != null && accion != null) {
-                switch (propiedad) {
-                    case "streaming":
 
+                switch (propiedad) {
+                    case "general":
+                        switch (accion) {
+                            case "disconnect":
+                                streamingFlag.set(false);
+                                if (client.isConnected()) {
+                                    try {
+
+                                        client.close();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                // we restart the server socket
+
+                                new Thread(() -> {
+                                    serverSocketCreation();
+                                    receiveCommand();
+                                }).start();
+
+                                break;
+
+                        }
+                        break;
+                    case "streaming":
                         switch (accion) {
                             case "start":
                                 if (!streamingFlag.get()) {
@@ -385,7 +406,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                 mRobot.turn(-90.0f);
                                 break;
                         }
-                        mHandler.postDelayed(stopMovingRunnable, 500);
+                        mHandler.postDelayed(stopMovingRunnable, 400);
                         break;
                 }
             }
