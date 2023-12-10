@@ -15,7 +15,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.nuwarobotics.service.IClientId;
 import com.nuwarobotics.service.agent.NuwaRobotAPI;
 import com.nuwarobotics.service.agent.RobotEventListener;
+import com.nuwarobotics.service.camera.common.Constants;
 import com.nuwarobotics.service.camera.sdk.CameraSDK;
+import com.nuwarobotics.service.camera.sdk.OutputData;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.server.WebSocketServer;
@@ -23,6 +25,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -31,6 +34,7 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FrameStreamingActivity extends AppCompatActivity {
@@ -49,9 +53,30 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
     private ServerSocket server;
     private Socket client;
-    private InputStream input;
-    private OutputStream output;
     private AtomicBoolean streamingFlag = new AtomicBoolean(true);
+    private final CameraSDK.CameraSDKCallback mCameraSDKCallback = new CameraSDK.CameraSDKCallback() {
+        @Override
+        public void onConnected(boolean b) {
+            Log.d("jesus", "" + b);
+        }
+
+        @Override
+        public void onOutput(Map<Integer, OutputData> map) {
+            for (Integer key : map.keySet()) {
+                OutputData ouputData = map.get(key);
+                Log.i("jesus", "" + ouputData.data);
+                if (streamingFlag.get()) {
+                    sendJSON(ouputData.data);
+                }
+
+            }
+        }
+
+        @Override
+        public void onPictureTaken(String s) {
+//can ignnore
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +86,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         mRobot = new NuwaRobotAPI(this, id);
         mRobot.registerRobotEventListener(robotEventListener);
         mCameraSDK = new CameraSDK(this);
+        mCameraSDK.register(mCameraSDKCallback, Constants.FACE_RECOGNITION, FrameStreamingActivity.class.getName());
         setContentView(R.layout.activity_sample);
 
         mImageFrame = findViewById(R.id.img_frame);
@@ -73,7 +99,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         startStreaming();
     }
-    private final RobotEventListener robotEventListener= new RobotEventListener() {
+
+    private final RobotEventListener robotEventListener = new RobotEventListener() {
         @Override
         public void onWikiServiceStart() {
             mRobot.requestSensor(NuwaRobotAPI.SENSOR_TOUCH);
@@ -146,12 +173,12 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         @Override
         public void onTouchEvent(int position, int i1) {
-        Log.i("jesus", "i="+position+"i1="+i1);
-        if(position== 4){
-            mRobot.showFace();
-        }else if (position==3){
-            mRobot.hideFace();
-        }
+            Log.i("jesus", "i=" + position + "i1=" + i1);
+            if (position == 4) {
+                mRobot.showFace();
+            } else if (position == 3) {
+                mRobot.hideFace();
+            }
         }
 
         @Override
@@ -224,8 +251,6 @@ public class FrameStreamingActivity extends AppCompatActivity {
             mRobot.showFace();
             Log.i("jesus ", "Client connected");
 
-            input = client.getInputStream();
-            output = client.getOutputStream();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -240,13 +265,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         mCameraSDK.release();
         try {
-            if (input != null)
-                input.close();
-            if (output != null)
-                output.close();
             if (client != null && client.isConnected())
                 client.close();
-            if ( server != null && !server.isClosed() )
+            if (server != null && !server.isClosed())
                 server.close();
         } catch (IOException e) {
 
@@ -267,9 +288,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                     vTextIP.setText(ip);
                                     vTextPort.setText(portNumber.toString());
                                     if (null != client && client.isConnected() && streamingFlag.get()) {
-                                        if(!streamingFlag.get())
+                                        if (!streamingFlag.get())
                                             break;
-                                       // runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
+                                        // runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
                                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
                                         bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
                                         try {
@@ -321,10 +342,10 @@ public class FrameStreamingActivity extends AppCompatActivity {
         while (!server.isClosed() && client.isConnected() && !client.isClosed()) {
             try {
                 InputStream is = client.getInputStream();
-                byte[]bytes=   new byte [1024];
+                byte[] bytes = new byte[1024];
                 is.read(bytes);
                 String string = new String(bytes);
-                JSONObject cmd = string != null? new JSONObject(string):null;
+                JSONObject cmd = string != null ? new JSONObject(string) : null;
 
                 if (cmd != null) {
                     interpretCommand(cmd);
@@ -414,5 +435,77 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
 
     }
+
+    private void sendJSON(String str) {
+        new Thread(() -> {
+
+            if (client != null && client.isConnected()) {
+                try {
+                    OutputStream oos = client.getOutputStream();
+                    oos.write(str.getBytes());
+                    oos.flush();
+                    Log.d("JSON", "information sent: " + str);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+        }).start();
+
+    }
+    private enum TypeOfData{
+        BITMAP,JSON, STRING
+    }
+    private void sendBytes(TypeOfData td, byte[] DataBites) throws IOException {
+            /*another possible option is to  make a class
+            that implements serializable ?
+            said class wold have a flag that indicate isf it is json
+            or a bitmap
+            and gives you the  bitmap/jason
+             */
+        // first we determine what kind of data we are goint to send
+       // in the header the two first bits are the start of sequence 11
+        // 11_110101 if its a string 245
+        // 11_110111 if its a bitmap 247
+        byte header = 0;
+        byte endSequence = (byte) 255;
+        //TODO;: Change to switch
+        if(td.equals(TypeOfData.BITMAP)){
+            header = (byte) 247;
+        }else if(td.equals(TypeOfData.JSON)){
+            header = (byte) 245;
+        }
+       byte[] headerArray= new byte[1];
+        headerArray[0] = header;
+        byte[] arrayToSend = concat(headerArray,DataBites);
+        if(client != null && client.isConnected() && streamingFlag.get()){
+            // TODO: the sending mechanism
+            DataOutputStream dos = new DataOutputStream(client.getOutputStream());
+            dos.writeInt(arrayToSend.length);
+            dos.write(arrayToSend);
+
+        }
+
+
+
+
+    }
+    private static byte[] concat(byte[]... arrays) {
+        //from https://stackoverflow.com/questions/5513152/easy-way-to-concatenate-two-byte-arrays
+        int length = 0;
+        for (byte[] array : arrays) {
+            length += array.length;
+        }
+        byte[] result = new byte[length];
+        int pos = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, pos, array.length);
+            pos += array.length;
+        }
+        return result;
+    }
+
+
 
 }
