@@ -37,6 +37,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import ContainerSocket.DataType;
+
 public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
     //private static Camera mCamera;
@@ -442,6 +444,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
     }
 
+
     private void sendJSON(String str) {
         new Thread(() -> {
 
@@ -456,6 +459,15 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 }
 
             }
+
+        }).start();
+
+    }
+    private static void sendSocketContainer(DataType dt, byte[] dataArray){
+        /*
+
+         */
+        new Thread(()-> {
 
         }).start();
 

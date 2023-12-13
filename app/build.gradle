@@ -41,4 +41,5 @@ dependencies {
     implementation (name: 'connectionmanager-0.4.8.12_69930af_2022-03-28_1818', ext:'aar')
 
     implementation "com.squareup.retrofit2:converter-gson:2.4.0"
+    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'], exclude: [])
 }
