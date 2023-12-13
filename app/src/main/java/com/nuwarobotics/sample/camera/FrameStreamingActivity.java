@@ -66,7 +66,12 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 OutputData ouputData = map.get(key);
                 Log.i("jesus", "" + ouputData.data);
                 if (streamingFlag.get()) {
-                    sendJSON(ouputData.data);
+                new Thread(()-> {
+                    try {
+                    sendBytes(TypeOfData.JSON,ouputData.toString().getBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }}).start();
                 }
 
             }
@@ -292,16 +297,15 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                             break;
                                         // runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
                                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
-                                        try {
-                                            ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
-                                            oos.writeObject(stream.toByteArray());
-                                            oos.flush();
-                                            Log.d("jesus", "wrote the bitmat to the socket");
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            Log.d("jesus", " couldnt write the bitmat to the socket");
-                                        }
+                                        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream);
+                                        new Thread(()->{
+                                            try {
+                                                sendBytes(TypeOfData.BITMAP,stream.toByteArray());
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }).start();
+
 
                                     }
 
@@ -416,6 +420,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         switch (accion) {
                             case "backward":
                                 mRobot.move(-0.3f);
+                                mRobot.startTTS("BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP");
+
                                 break;
                             case "frontward":
                                 mRobot.move(0.3f);
