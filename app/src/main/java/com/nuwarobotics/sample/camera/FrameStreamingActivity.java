@@ -36,8 +36,8 @@ import java.net.Socket;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import ContainerSocket.DataType;
+import ContainerSocket.SocketByteContainer;
 
 public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
@@ -68,12 +68,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 OutputData ouputData = map.get(key);
                 Log.i("jesus", "" + ouputData.data);
                 if (streamingFlag.get()) {
-                new Thread(()-> {
+                    //TODO: completar
+                /*new Thread(()-> {
                     try {
                     sendBytes(TypeOfData.JSON,ouputData.toString().getBytes());
                 } catch (IOException e) {
                     e.printStackTrace();
-                }}).start();
+                }}).start();*/
                 }
 
             }
@@ -300,13 +301,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                         // runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
                                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
                                         bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream);
-                                        new Thread(()->{
-                                            try {
-                                                sendBytes(TypeOfData.BITMAP,stream.toByteArray());
-                                            } catch (IOException e) {
-                                                e.printStackTrace();
-                                            }
-                                        }).start();
+                                        sendSocketContainer(DataType.BITMAP,stream.toByteArray());
 
 
                                     }
@@ -347,16 +342,14 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private void receiveCommand() {
         while (!server.isClosed() && client.isConnected() && !client.isClosed()) {
             try {
-                InputStream is = client.getInputStream();
-                byte[] bytes = new byte[1024];
-                is.read(bytes);
-                String string = new String(bytes);
-                JSONObject cmd = string != null ? new JSONObject(string) : null;
-
-                if (cmd != null) {
-                    interpretCommand(cmd);
+                ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
+                 SocketByteContainer sbc = (SocketByteContainer)ois.readObject();
+                if( sbc != null && sbc.getDataType() == DataType.JSON){
+                    String str = new String(sbc.getDataArray());
+                    JSONObject json = new JSONObject(str);
+                    interpretCommand(json);
                 }
-            } catch (IOException | JSONException e) {
+            } catch (IOException | JSONException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
         }
@@ -463,12 +456,19 @@ public class FrameStreamingActivity extends AppCompatActivity {
         }).start();
 
     }
-    private static void sendSocketContainer(DataType dt, byte[] dataArray){
+    private void sendSocketContainer(DataType dt, byte[] dataArray){
         /*
-
+ ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
+                                            oos.writeObject(stream.toByteArray());
          */
         new Thread(()-> {
-
+            try {
+                ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
+                SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
+                oos.writeObject(sbc);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }).start();
 
     }
