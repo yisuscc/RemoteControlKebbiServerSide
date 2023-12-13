@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import ContainerSocket.DataType;
 import ContainerSocket.SocketByteContainer;
+import ContainerSocket.DataType;
 
 public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
