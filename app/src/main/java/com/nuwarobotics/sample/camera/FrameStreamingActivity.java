@@ -18,14 +18,9 @@ import com.nuwarobotics.service.agent.RobotEventListener;
 import com.nuwarobotics.service.camera.common.Constants;
 import com.nuwarobotics.service.camera.sdk.CameraSDK;
 import com.nuwarobotics.service.camera.sdk.OutputData;
-
-import org.java_websocket.WebSocket;
-import org.java_websocket.server.WebSocketServer;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -38,24 +33,25 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import ContainerSocket.DataType;
 import ContainerSocket.SocketByteContainer;
-import ContainerSocket.DataType;
+
 
 public class FrameStreamingActivity extends AppCompatActivity {
     private CameraSDK mCameraSDK;
-    //private static Camera mCamera;
+
     private ImageView mImageFrame;
     private TextView vTextIP;
     private TextView vTextPort;
     private NuwaRobotAPI mRobot;
     private final Handler mHandler = new Handler();
-
     final int WIDTH = 1280;
     final int HEIGHT = 768;
     Integer portNumber = 4169;
     String ip = "LoremIpsum";
-
     private ServerSocket server;
+    private  ServerSocket server2;
     private Socket client;
+    private Socket client2;
+    private AtomicBoolean sendAllowed  = new AtomicBoolean(true);
     private AtomicBoolean streamingFlag = new AtomicBoolean(true);
     private final CameraSDK.CameraSDKCallback mCameraSDKCallback = new CameraSDK.CameraSDKCallback() {
         @Override
@@ -68,14 +64,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
             for (Integer key : map.keySet()) {
                 OutputData ouputData = map.get(key);
                 Log.i("jesus", "" + ouputData.data);
-                if (streamingFlag.get()) {
-                    //TODO: completar
-                /*new Thread(()-> {
-                    try {
-                    sendBytes(TypeOfData.JSON,ouputData.toString().getBytes());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }}).start();*/
+                if (streamingFlag.get() && sendAllowed.get()) {
+                    sendSocketContainer(DataType.JSON,ouputData.data.getBytes());
+
                 }
 
             }
@@ -294,15 +285,20 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                 case CameraSDK.CODE_NORMAL:
                                 case CameraSDK.CODE_NORMAL_RESIZE:
 
-                                    vTextIP.setText(ip);
-                                    vTextPort.setText(portNumber.toString());
+                                  runOnUiThread(()-> {
+                                      vTextIP.setText(ip);
+                                      vTextPort.setText(portNumber.toString());
+                                  });
                                     if (null != client && client.isConnected() && streamingFlag.get()) {
-                                        if (!streamingFlag.get())
+                                       if (!streamingFlag.get())
                                             break;
-                                        // runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
+                                        runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
                                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
                                         bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream);
-                                        sendSocketContainer(DataType.BITMAP,stream.toByteArray());
+                                        if(sendAllowed.get()){
+                                            sendSocketContainer(DataType.BITMAP,stream.toByteArray());
+                                        }
+                                        runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
 
 
                                     }
@@ -416,8 +412,6 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         switch (accion) {
                             case "backward":
                                 mRobot.move(-0.3f);
-                                mRobot.startTTS("BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP BEEP");
-
                                 break;
                             case "frontward":
                                 mRobot.move(0.3f);
@@ -439,34 +433,22 @@ public class FrameStreamingActivity extends AppCompatActivity {
     }
 
 
-    private void sendJSON(String str) {
-        new Thread(() -> {
 
-            if (client != null && client.isConnected()) {
-                try {
-                    OutputStream oos = client.getOutputStream();
-                    oos.write(str.getBytes());
-                    oos.flush();
-                    Log.d("JSON", "information sent: " + str);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-
-        }).start();
-
-    }
     private void sendSocketContainer(DataType dt, byte[] dataArray){
-        /*
- ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
-                                            oos.writeObject(stream.toByteArray());
-         */
+
         new Thread(()-> {
+
             try {
-                ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
-                SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
-                oos.writeObject(sbc);
+               if(client!= null && !client.isClosed() && client.isConnected()){
+                   sendAllowed.set(false);
+                   ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
+                   SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
+                   Log.d("sendSocket","sent:" + dt.toString());
+                   oos.writeObject(sbc);
+                   oos.flush();
+                   sendAllowed.set(true);
+
+               }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -476,13 +458,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private enum TypeOfData{
         BITMAP,JSON, STRING
     }
-    private void sendBytes(TypeOfData td, byte[] DataBites) throws IOException {
-            /*another possible option is to  make a class
+/*    private void sendBytes(TypeOfData td, byte[] DataBites) throws IOException {
+            *//*another possible option is to  make a class
             that implements serializable ?
             said class wold have a flag that indicate isf it is json
             or a bitmap
             and gives you the  bitmap/jason
-             */
+             *//*
         // first we determine what kind of data we are goint to send
        // in the header the two first bits are the start of sequence 11
         // 11_110101 if its a string 245
@@ -509,7 +491,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
 
 
-    }
+    }*/
     private static byte[] concat(byte[]... arrays) {
         //from https://stackoverflow.com/questions/5513152/easy-way-to-concatenate-two-byte-arrays
         int length = 0;
