@@ -22,10 +22,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Locale;
@@ -41,15 +39,17 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private ImageView mImageFrame;
     private TextView vTextIP;
     private TextView vTextPort;
+    private TextView vTextPort2;
     private NuwaRobotAPI mRobot;
     private final Handler mHandler = new Handler();
     final int WIDTH = 1280;
     final int HEIGHT = 768;
     Integer portNumber = 4169;
+    Integer portNumber2 = 4169;
     String ip = "LoremIpsum";
-    private ServerSocket server;
+    private ServerSocket serverBitmap;
     private  ServerSocket server2;
-    private Socket client;
+    private Socket clientBitmap;
     private Socket client2;
     private AtomicBoolean sendAllowed  = new AtomicBoolean(true);
     private AtomicBoolean streamingFlag = new AtomicBoolean(true);
@@ -64,7 +64,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
             for (Integer key : map.keySet()) {
                 OutputData ouputData = map.get(key);
                 Log.i("jesus", "" + ouputData.data);
-                if (streamingFlag.get() && sendAllowed.get()) {
+                if (streamingFlag.get()) {//  && sendAllowed.get()
+                    //sendSocketContainer2(DataType.JSON,ouputData.data.getBytes());
                     sendSocketContainer(DataType.JSON,ouputData.data.getBytes());
 
                 }
@@ -92,6 +93,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         mImageFrame = findViewById(R.id.img_frame);
         vTextIP = findViewById(R.id.ipView);
         vTextPort = findViewById(R.id.portView);
+        vTextPort2 = findViewById(R.id.portView2);
         new Thread(() -> {
             serverSocketCreation();
             receiveCommand();
@@ -240,14 +242,20 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private void serverSocketCreation() {
         try {
             //server = new ServerSocket(portNumber);
-            if (server != null && !server.isClosed()) {
-                server.close();
+            if (serverBitmap != null && !serverBitmap.isClosed() && server2!= null && !server2.isClosed()) {
+                serverBitmap.close();
+                server2.close();
             }
-            server = new ServerSocket(0);
+
+            serverBitmap = new ServerSocket(0);
+            server2 = new ServerSocket(0);
             ip = getLocalIP(this);
-            portNumber = server.getLocalPort();
+            portNumber = serverBitmap.getLocalPort();
+            portNumber2 = server2.getLocalPort();
+
             //  Log.d("ServerSocketCreation", "seted the names" + "ip: " + ip + "port:" + portNumber);
-            client = server.accept();
+            clientBitmap = serverBitmap.accept();
+            client2 = server2.accept();
             mRobot.showFace();
             Log.i("jesus ", "Client connected");
 
@@ -265,10 +273,14 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         mCameraSDK.release();
         try {
-            if (client != null && client.isConnected())
-                client.close();
-            if (server != null && !server.isClosed())
-                server.close();
+            if (clientBitmap != null && clientBitmap.isConnected())
+                clientBitmap.close();
+            if (serverBitmap != null && !serverBitmap.isClosed())
+                serverBitmap.close();
+            if (client2 != null && client2.isConnected())
+                client2.close();
+            if (server2 != null && !server2.isClosed())
+                server2.close();
         } catch (IOException e) {
 
         }
@@ -288,8 +300,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                   runOnUiThread(()-> {
                                       vTextIP.setText(ip);
                                       vTextPort.setText(portNumber.toString());
+                                      vTextPort2.setText(portNumber2.toString());
                                   });
-                                    if (null != client && client.isConnected() && streamingFlag.get()) {
+                                    if (null != clientBitmap && clientBitmap.isConnected() && streamingFlag.get()) {
                                        if (!streamingFlag.get())
                                             break;
                                         runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
@@ -337,9 +350,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
     };
 
     private void receiveCommand() {
-        while (!server.isClosed() && client.isConnected() && !client.isClosed()) {
+        while (!serverBitmap.isClosed() && clientBitmap.isConnected() && !clientBitmap.isClosed()) {
             try {
-                ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
+                ObjectInputStream ois = new ObjectInputStream(clientBitmap.getInputStream());
                  SocketByteContainer sbc = (SocketByteContainer)ois.readObject();
                 if( sbc != null && sbc.getDataType() == DataType.JSON){
                     String str = new String(sbc.getDataArray());
@@ -374,10 +387,10 @@ public class FrameStreamingActivity extends AppCompatActivity {
                         switch (accion) {
                             case "disconnect":
                                 streamingFlag.set(false);
-                                if (client.isConnected()) {
+                                if (clientBitmap.isConnected()) {
                                     try {
 
-                                        client.close();
+                                        clientBitmap.close();
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
@@ -439,9 +452,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
         new Thread(()-> {
 
             try {
-               if(client!= null && !client.isClosed() && client.isConnected()){
+               if(clientBitmap != null && !clientBitmap.isClosed() && clientBitmap.isConnected()){
                    sendAllowed.set(false);
-                   ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
+                   ObjectOutputStream oos = new ObjectOutputStream((clientBitmap.getOutputStream()));
                    SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
                    Log.d("sendSocket","sent:" + dt.toString());
                    oos.writeObject(sbc);
@@ -455,9 +468,29 @@ public class FrameStreamingActivity extends AppCompatActivity {
         }).start();
 
     }
-    private enum TypeOfData{
-        BITMAP,JSON, STRING
+
+    private void sendSocketContainer2(DataType dt, byte[] dataArray){
+
+        new Thread(()-> {
+
+            try {
+                if(client2!= null && !client2.isClosed() && client2.isConnected()){
+                   // sendAllowed.set(false);
+                    ObjectOutputStream oos = new ObjectOutputStream((client2.getOutputStream()));
+                    SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
+                    Log.d("sendSocket","sent:" + dt.toString());
+                    oos.writeObject(sbc);
+                    oos.flush();
+                  //  sendAllowed.set(true);
+
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
     }
+
 /*    private void sendBytes(TypeOfData td, byte[] DataBites) throws IOException {
             *//*another possible option is to  make a class
             that implements serializable ?
