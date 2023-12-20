@@ -57,6 +57,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         @Override
         public void onConnected(boolean b) {
             Log.d("jesus", "" + b);
+            Log.d("e","e")
         }
 
         @Override
