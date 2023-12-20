@@ -61,14 +61,16 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
         @Override
         public void onOutput(Map<Integer, OutputData> map) {
-            for (Integer key : map.keySet()) {
-                OutputData ouputData = map.get(key);
-                Log.i("jesus", "" + ouputData.data);
-                if (streamingFlag.get() && sendAllowed.get()) {
-                    sendSocketContainer(DataType.JSON,ouputData.data.getBytes());
+
+          if(sendAllowed.get()&& streamingFlag.get())  {
+                for (Integer key : map.keySet()) {
+                    OutputData ouputData = map.get(key);
+                    Log.i("jesus", "" + ouputData.data);
+
+                        sendSocketContainer(DataType.JSON, ouputData.data.getBytes());
+
 
                 }
-
             }
         }
 
@@ -295,9 +297,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                         runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
                                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
                                         bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream);
-                                        if(sendAllowed.get()){
-                                            sendSocketContainer(DataType.BITMAP,stream.toByteArray());
-                                        }
+                                           if(sendAllowed.get()){
+                                               sendSocketContainer(DataType.BITMAP,stream.toByteArray());
+                                           }
                                         runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
 
 
@@ -437,7 +439,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private void sendSocketContainer(DataType dt, byte[] dataArray){
 
         new Thread(()-> {
-
+                Log.d("time","start");
             try {
                if(client!= null && !client.isClosed() && client.isConnected()){
                    sendAllowed.set(false);
@@ -446,12 +448,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
                    Log.d("sendSocket","sent:" + dt.toString());
                    oos.writeObject(sbc);
                    oos.flush();
-                   sendAllowed.set(true);
+                   mHandler.postDelayed(() -> sendAllowed.set(true), 500);
 
                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            Log.d("time","finish");
         }).start();
 
     }
