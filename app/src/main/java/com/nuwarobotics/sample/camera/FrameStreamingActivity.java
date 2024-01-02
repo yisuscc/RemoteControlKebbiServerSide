@@ -51,7 +51,8 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private  ServerSocket server2;
     private Socket client;
     private Socket client2;
-    private AtomicBoolean sendAllowed  = new AtomicBoolean(true);
+    private AtomicBoolean sendAllowed  = new AtomicBoolean(true); // this one is for concurrency
+    private AtomicBoolean sendJSONINfoAllowed = new AtomicBoolean(true); // this one to reduce the frecuency for sending the jsons
     private AtomicBoolean streamingFlag = new AtomicBoolean(true);
     private final CameraSDK.CameraSDKCallback mCameraSDKCallback = new CameraSDK.CameraSDKCallback() {
         @Override
@@ -62,7 +63,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         @Override
         public void onOutput(Map<Integer, OutputData> map) {
 
-          if(sendAllowed.get()&& streamingFlag.get())  {
+          if(sendAllowed.get()&& streamingFlag.get() && sendJSONINfoAllowed.get())  {
                 for (Integer key : map.keySet()) {
                     OutputData ouputData = map.get(key);
                     Log.i("jesus", "" + ouputData.data);
@@ -437,18 +438,24 @@ public class FrameStreamingActivity extends AppCompatActivity {
 
 
     private void sendSocketContainer(DataType dt, byte[] dataArray){
-
+// complejidad  = k
         new Thread(()-> {
                 Log.d("time","start");
             try {
                if(client!= null && !client.isClosed() && client.isConnected()){
                    sendAllowed.set(false);
+                   if(dt.equals(DataType.JSON)){
+                       sendJSONINfoAllowed.set(false);
+                   }
                    ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
                    SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
                    Log.d("sendSocket","sent:" + dt.toString());
                    oos.writeObject(sbc);
                    oos.flush();
-                   mHandler.postDelayed(() -> sendAllowed.set(true), 500);
+                   sendAllowed.set(true);
+                   if(dt.equals(DataType.JSON)) {
+                       mHandler.postDelayed(() -> sendJSONINfoAllowed.set(true), 500);
+                   }
 
                }
             } catch (IOException e) {
@@ -458,9 +465,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
         }).start();
 
     }
-    private enum TypeOfData{
-        BITMAP,JSON, STRING
-    }
+
 /*    private void sendBytes(TypeOfData td, byte[] DataBites) throws IOException {
             *//*another possible option is to  make a class
             that implements serializable ?
