@@ -30,6 +30,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import ContainerSocket.DataType;
 import ContainerSocket.SocketByteContainer;
@@ -54,10 +55,13 @@ public class FrameStreamingActivity extends AppCompatActivity {
     private AtomicBoolean sendAllowed  = new AtomicBoolean(true); // this one is for concurrency
     private AtomicBoolean sendJSONINfoAllowed = new AtomicBoolean(true); // this one to reduce the frecuency for sending the jsons
     private AtomicBoolean streamingFlag = new AtomicBoolean(true);
+    private Semaphore  sendAllowed2= new Semaphore(1);
+    private FaceInfoView2 mFaceInfo;
     private final CameraSDK.CameraSDKCallback mCameraSDKCallback = new CameraSDK.CameraSDKCallback() {
         @Override
         public void onConnected(boolean b) {
             Log.d("jesus", "" + b);
+            mCameraSDK.user_cmd(new String[]{Constants.SDK_CMD,"enable_multi_faces","enable","1"});
         }
 
         @Override
@@ -67,9 +71,17 @@ public class FrameStreamingActivity extends AppCompatActivity {
                 for (Integer key : map.keySet()) {
                     OutputData ouputData = map.get(key);
                     Log.i("jesus", "" + ouputData.data);
+                    sendJSONINfoAllowed.set(false);
+                    sendSocketContainer(DataType.JSON, ouputData.data.getBytes());
 
-                        sendSocketContainer(DataType.JSON, ouputData.data.getBytes());
+                        mHandler.postDelayed(() -> sendJSONINfoAllowed.set(true), 500);
 
+                    try {
+                        JSONObject jason = new JSONObject(ouputData.data);
+                        mFaceInfo.setData(jason);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
 
                 }
             }
@@ -90,8 +102,9 @@ public class FrameStreamingActivity extends AppCompatActivity {
         mRobot.registerRobotEventListener(robotEventListener);
         mCameraSDK = new CameraSDK(this);
         mCameraSDK.register(mCameraSDKCallback, Constants.FACE_RECOGNITION, FrameStreamingActivity.class.getName());
-        setContentView(R.layout.activity_sample);
 
+        setContentView(R.layout.activity_sample);
+        mFaceInfo = findViewById(R.id.faceInfo);
         mImageFrame = findViewById(R.id.img_frame);
         vTextIP = findViewById(R.id.ipView);
         vTextPort = findViewById(R.id.portView);
@@ -444,18 +457,18 @@ public class FrameStreamingActivity extends AppCompatActivity {
             try {
                if(client!= null && !client.isClosed() && client.isConnected()){
                    sendAllowed.set(false);
-                   if(dt.equals(DataType.JSON)){
-                       sendJSONINfoAllowed.set(false);
+                   synchronized (mHandler) {
+                       if (dt.equals(DataType.JSON)) {
+
+                       }
+                       ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
+                       SocketByteContainer sbc = new SocketByteContainer(dt, dataArray);
+                       Log.d("sendSocket", "sent:" + dt.toString());
+                       oos.writeObject(sbc);
+                       oos.flush();
                    }
-                   ObjectOutputStream oos = new ObjectOutputStream((client.getOutputStream()));
-                   SocketByteContainer sbc = new SocketByteContainer(dt,dataArray);
-                   Log.d("sendSocket","sent:" + dt.toString());
-                   oos.writeObject(sbc);
-                   oos.flush();
                    sendAllowed.set(true);
-                   if(dt.equals(DataType.JSON)) {
-                       mHandler.postDelayed(() -> sendJSONINfoAllowed.set(true), 500);
-                   }
+
 
                }
             } catch (IOException e) {
