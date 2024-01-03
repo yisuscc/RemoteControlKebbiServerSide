@@ -49,13 +49,10 @@ public class FrameStreamingActivity extends AppCompatActivity {
     Integer portNumber = 4169;
     String ip = "LoremIpsum";
     private ServerSocket server;
-    private  ServerSocket server2;
     private Socket client;
-    private Socket client2;
     private AtomicBoolean sendAllowed  = new AtomicBoolean(true); // this one is for concurrency
     private AtomicBoolean sendJSONINfoAllowed = new AtomicBoolean(true); // this one to reduce the frecuency for sending the jsons
     private AtomicBoolean streamingFlag = new AtomicBoolean(true);
-    private Semaphore  sendAllowed2= new Semaphore(1);
     private FaceInfoView2 mFaceInfo;
     private final CameraSDK.CameraSDKCallback mCameraSDKCallback = new CameraSDK.CameraSDKCallback() {
         @Override
@@ -316,9 +313,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
                                            }
                                         runOnUiThread(() -> mImageFrame.setImageBitmap(bitmap));
 
-
                                     }
-
                                     break;
                                 case CameraSDK.CODE_TOO_MANY_CLIENTS:
                                     // over 3 clients using currently.
@@ -449,9 +444,7 @@ public class FrameStreamingActivity extends AppCompatActivity {
     }
 
 
-
     private void sendSocketContainer(DataType dt, byte[] dataArray){
-// complejidad  = k
         new Thread(()-> {
                 Log.d("time","start");
             try {
@@ -477,55 +470,6 @@ public class FrameStreamingActivity extends AppCompatActivity {
             Log.d("time","finish");
         }).start();
 
-    }
-
-/*    private void sendBytes(TypeOfData td, byte[] DataBites) throws IOException {
-            *//*another possible option is to  make a class
-            that implements serializable ?
-            said class wold have a flag that indicate isf it is json
-            or a bitmap
-            and gives you the  bitmap/jason
-             *//*
-        // first we determine what kind of data we are goint to send
-       // in the header the two first bits are the start of sequence 11
-        // 11_110101 if its a string 245
-        // 11_110111 if its a bitmap 247
-        byte header = 0;
-        byte endSequence = (byte) 255;
-        //TODO;: Change to switch
-        if(td.equals(TypeOfData.BITMAP)){
-            header = (byte) 247;
-        }else if(td.equals(TypeOfData.JSON)){
-            header = (byte) 245;
-        }
-       byte[] headerArray= new byte[1];
-        headerArray[0] = header;
-        byte[] arrayToSend = concat(headerArray,DataBites);
-        if(client != null && client.isConnected() && streamingFlag.get()){
-            // TODO: the sending mechanism
-            DataOutputStream dos = new DataOutputStream(client.getOutputStream());
-            dos.writeInt(arrayToSend.length);
-            dos.write(arrayToSend);
-
-        }
-
-
-
-
-    }*/
-    private static byte[] concat(byte[]... arrays) {
-        //from https://stackoverflow.com/questions/5513152/easy-way-to-concatenate-two-byte-arrays
-        int length = 0;
-        for (byte[] array : arrays) {
-            length += array.length;
-        }
-        byte[] result = new byte[length];
-        int pos = 0;
-        for (byte[] array : arrays) {
-            System.arraycopy(array, 0, result, pos, array.length);
-            pos += array.length;
-        }
-        return result;
     }
 
 

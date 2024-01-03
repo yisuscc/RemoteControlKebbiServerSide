@@ -25,9 +25,7 @@ public class FaceInfoView2 extends View {
     private final Paint mPaint;
     private final Rect mRect;
 
-    /* private String mAge = "";
-     private String mGender = "";
-     private int mBottom, mLeft, mRight, mTop;*/
+
     private final List<DataFace> faceList = new ArrayList<>();
     private int horizontalRatio;
     private int verticalRatio;
@@ -56,22 +54,20 @@ public class FaceInfoView2 extends View {
                 mPaint.setStyle(Paint.Style.FILL);
                 final String FORMAT_AGE = "Age: %1$s";
                 final String FORMAT_GENDER = "Gender: %1$s";
-                int mLeft, mTop, mRight, mBottom;
-                //TODO refcator the variable names
-                mLeft = face.getLeft();
-                mRight = face.getRight();
-                mTop = face.getTop();
-                mBottom = face.getBottom();
+                int left, top, right, bottom;
+                left = face.getLeft();
+                right = face.getRight();
+                top = face.getTop();
+                bottom = face.getBottom();
                 String mAge, mGender;
                 mAge = face.getAge();
                 mGender = face.getGender();
-                mRect.set(mLeft, mTop, mRight, mBottom);
+                mRect.set(left, top, right, bottom);
                 mPaint.setStyle(Paint.Style.STROKE);
                 canvas.drawRect(mRect, mPaint);
-
                 Log.d("jsonDraw", "drawing the following face" + face.toString());
-                canvas.drawText(String.format(Locale.ENGLISH, FORMAT_AGE, mAge), mLeft, (mBottom - FONT_SIZE), mPaint);
-                canvas.drawText(String.format(Locale.ENGLISH, FORMAT_GENDER, mGender), mLeft, mBottom, mPaint);
+                canvas.drawText(String.format(Locale.ENGLISH, FORMAT_AGE, mAge), left, (bottom - FONT_SIZE), mPaint);
+                canvas.drawText(String.format(Locale.ENGLISH, FORMAT_GENDER, mGender), left, bottom, mPaint);
             }
         }
 
@@ -80,7 +76,7 @@ public class FaceInfoView2 extends View {
 
     public void setData(JSONObject data) {
         if (null != data) {
-            final String FIELD_FACES = "totalFaces"; //TODO: Change it accordibng to the correct names
+            final String FIELD_FACES = "totalFaces";
             final String FIELD_AGE = "age";
             final String FIELD_GENDER = "gender";
             final String FIELD_RECT = "rect";
